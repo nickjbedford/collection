@@ -1,0 +1,32 @@
+{
+    "name": "nickjbedford/swiss-collection",
+    "type": "library",
+    "description": "The SwissCollection goes beyond those found in other frameworks, adding a large variety of useful functions to manipulate your collections of data.",
+    "keywords": [
+		"array", "collection", "mapper", "list"
+	],
+    "homepage": "https://github.com/nickjbedford/swiss-collection.git",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Nick Bedford",
+            "email": "nick@nickbedford.com",
+            "homepage": "https://www.nickjbedford.com",
+            "role": "Developer"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "YetAnother\\": "src/"
+        },
+        "files": [
+            "src/helpers.php"
+        ]
+    },
+	"require": {
+		"php": ">=7.4"
+	},
+    "require-dev": {
+        "phpunit/phpunit": "*"
+    }
+}
