@@ -747,6 +747,17 @@
 		}
 		
 		/**
+		 * Calculates the average of the elements in the array that match a predicate.
+		 * @param callable|Closure $predicate A function used to determine if the element should be included in the average.
+		 * @return float|int
+		 */
+		public function averageIf($predicate)
+		{
+			return $this->filter($predicate)
+				->average();
+		}
+		
+		/**
 		 * Calculates the average of the elements in the array.
 		 * @return float|int
 		 */
@@ -765,6 +776,17 @@
 		}
 		
 		/**
+		 * Returns the number of elements in the collection.
+		 * @param callable|Closure $predicate A function used to determine if the element should be included in the count.
+		 * @return int
+		 */
+		public function countIf($predicate): int
+		{
+			return $this->fold(
+				fn(int $count, $value): int => $count + ($predicate($value) ? 1 : 0), 0);
+		}
+		
+		/**
 		 * Determines if the collection is empty.
 		 * @return bool
 		 */
@@ -779,11 +801,12 @@
 		 */
 		public function hasItems(): bool
 		{
-			return count($this->values) > 0;
+			return !$this->isEmpty();
 		}
 		
 		/**
-		 * Cleans an array using a mapping function and filter predicate to remove elements.
+		 * Cleans an array using a mapping function and filter predicate to remove elements. For example,
+		 * this can be used (by default) to create an array of only trimmed, non-empty strings.
 		 * @param callable|Closure|string|null $mapper A mapping function to apply before filter elements.
 		 * @param callable|Closure|string|null $removePredicate A predicate that determines which elements should be removed.
 		 * @return self
@@ -802,17 +825,6 @@
 				$result = array_filter($result, $removePredicate);
 			
 			return new self($result);
-		}
-		
-		/**
-		 * Returns the number of elements in the collection.
-		 * @param callable|Closure $predicate A function used to determine if the element should be included in the count.
-		 * @return int
-		 */
-		public function countIf($predicate): int
-		{
-			return $this->fold(
-				fn(int $count, $value): int => $count + ($predicate($value) ? 1 : 0), 0);
 		}
 		
 		/**
@@ -838,9 +850,9 @@
 		
 		/**
 		 * Applies a callback to each element of the collection.
-		 * @param callable|Closure $callback A callback to apply to each element of the collection. The callback
-		 * should return false to exit the loop prematurely.
-		 * @return bool Whether all elements were successfully processed.
+		 * @param callable|Closure $callback A callback to apply to each element of the collection.
+		 * The callback should return false to exit the loop prematurely.
+		 * @return bool Whether all elements were processed.
 		 */
 		public function eachUntil($callback): bool
 		{
@@ -863,6 +875,20 @@
 		}
 		
 		/**
+		 * Applies a callback to each key and value in the collection.
+		 * @param callable|Closure $callback A callback to apply to each element of the collection.
+		 * The callback should return false to exit the loop prematurely.
+		 * @return bool
+		 */
+		public function eachKeyedUntil($callback): bool
+		{
+			foreach($this->values as $key=>$value)
+				if (!$callback($key, $value))
+					return false;
+			return true;
+		}
+		
+		/**
 		 * Returns a new collection using a callback function. This function receives both the keys and values.
 		 * @param callable|Closure $keyGenerator A callback to generate a new key for each element in the array.
 		 * @return self
@@ -880,7 +906,7 @@
 		 * @param string $key The key to use to set the new collection's key for each array.
 		 * @return self
 		 */
-		public function rekeyArrays(string $key = 'ID'): self
+		public function rekeyFromArrays(string $key = 'ID'): self
 		{
 			$result = [];
 			foreach($this->values as $value)
@@ -893,7 +919,7 @@
 		 * @param string $property The property name to use to set the new collection's key for each object.
 		 * @return self
 		 */
-		public function rekeyObjects(string $property = 'ID'): self
+		public function rekeyFromObjects(string $property = 'ID'): self
 		{
 			$result = [];
 			foreach($this->values as $value)
@@ -913,7 +939,9 @@
 		
 		/**
 		 * Returns a new key/value collection mapped through a key/value pair generator.
-		 * @param callable|Closure $keyValueGenerator A callback to generate a new key/value pair for each element in the array.
+		 * @param callable|Closure $keyValueGenerator A callback to generate a new key/value pair for
+		 * each element in the array. The key is passed as the first parameter. The result from the
+		 * generator should be an array of two elements, the first being the key, the second being the value.
 		 * @return self
 		 */
 		public function mapAssoc($keyValueGenerator): self
@@ -929,16 +957,16 @@
 		
 		/**
 		 * Returns a new collection containing a grouped collection of the elements, optionally keyed.
-		 * @param callable|Closure $groupGenerator A callback to specify the group of each keyed element.
+		 * @param callable|Closure $groupKeyGenerator A callback to specify the group of each keyed element.
 		 * @param bool $preserveKeys Whether to preserve the keys of each element in the group arrays.
 		 * @return self
 		 */
-		public function group($groupGenerator, bool $preserveKeys = true): self
+		public function group($groupKeyGenerator, bool $preserveKeys = true): self
 		{
 			$result = [];
 			foreach($this->values as $key=>$value)
 			{
-				$group = $groupGenerator($key, $value);
+				$group = $groupKeyGenerator($key, $value);
 				$result[$group] ??= [];
 				$result[$group][$key] = $value;
 			}
@@ -948,7 +976,9 @@
 		/**
 		 * Returns a new collection containing a grouped collection of the elements, optionally keyed.
 		 * @param callable|Closure $groupKeyValueGenerator A callback to specify the group, key and value
-		 * of each keyed element in the collection.
+		 * of each keyed element in the collection. The result from the generator should be an array of
+		 * three values, the first being the group's key, the second being the value's key and the third
+		 * being the value itself.
 		 * @param bool $preserveKeys Whether to preserve the keys of each element in the group arrays.
 		 * @param bool $removeNulls Whether to remove null values from each group collection.
 		 * @return self
@@ -986,9 +1016,38 @@
 		 * @param bool $preserveKeys Whether to preserve the keys within each chunk.
 		 * @return self
 		 */
-		public function chunks(int $count, bool $preserveKeys = false): self
+		public function chunk(int $count, bool $preserveKeys = false): self
 		{
 			return new SwissCollection(array_chunk($this->values, $count, $preserveKeys));
+		}
+		
+		/**
+		 * Returns a new collection containing the array split into predicate-defined
+		 * chunks. Each chunk is a standard PHP array, not a collection instance.
+		 * @param callable|Closure $predicate The callback to determine whether to create a
+		 * new chunk (before the current value is processed). It receives both the key and value as parameters.
+		 * @param bool $preserveKeys Whether to preserve the keys within each chunk.
+		 * @return self
+		 */
+		public function chunkIf($predicate, bool $preserveKeys = false): self
+		{
+			$result = [];
+			$chunk = [];
+			foreach($this->values as $key=>$value)
+			{
+				if ($predicate($key, $value))
+				{
+					$result[] = $chunk;
+					$chunk = [];
+				}
+				
+				if ($preserveKeys)
+					$chunk[$key] = $value;
+				else
+					$chunk[] = $value;
+			}
+			$result[] = $chunk;
+			return new self($result);
 		}
 		
 		/**

@@ -7,13 +7,8 @@
 	use PHPUnit\Framework\TestCase;
 	use stdClass;
 	
-	class MappingTests extends TestCase
+	class SelectTests extends TestCase
 	{
-		public function setUp(): void
-		{
-			parent::setUp();
-		}
-		
 		public function testSelectOnValidMixedCollectionWorks()
 		{
 			$collection = $this->getSelectTestCollection();
