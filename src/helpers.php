@@ -1,5 +1,4 @@
 <?php
-	
 	use YetAnother\SwissCollection;
 	
 	if (!function_exists('sc'))

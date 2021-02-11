@@ -1125,23 +1125,3 @@
 			return new ArrayIterator($this->values);
 		}
 	}
-	
-	/**
-	 * Collects an array or scalar value into a collection.
-	 * @param array|mixed|null $values
-	 * @return SwissCollection
-	 */
-	function collect($values = []): SwissCollection
-	{
-		return SwissCollection::create($values);
-	}
-	
-	/**
-	 * Collects an array or scalar value into a collection.
-	 * @param array|mixed|null $values
-	 * @return SwissCollection
-	 */
-	function c($values = []): SwissCollection
-	{
-		return SwissCollection::create($values);
-	}
