@@ -11,7 +11,7 @@
 		{
 			$a = sc([ 'a' => 'A', 'b' => 'B' ]);
 			
-			$a->removeKeys([ 'a' ]);
+			$a->unsetKeys([ 'a' ]);
 			$this->assertCount(1, $a);
 			$this->assertEquals('B', $a['b']);
 			

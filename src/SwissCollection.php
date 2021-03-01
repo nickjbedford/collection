@@ -92,9 +92,22 @@
 		 * @param bool $strict Whether to also compare the types of the values.
 		 * @return int|string|false
 		 */
-		public function find($value, bool $strict = false)
+		public function search($value, bool $strict = false)
 		{
 			return array_search($value, $this->values, $strict);
+		}
+		
+		/**
+		 * Searches for a value in the collection and returns the offset/key,
+		 * otherwise false if the value could not be found. This is an alias of
+		 * find().
+		 * @param mixed $value The value to search for in the collection.
+		 * @param bool $strict Whether to also compare the types of the values.
+		 * @return int|string|false
+		 */
+		public function indexOf($value, bool $strict = false)
+		{
+			return $this->search($value, $strict);
 		}
 		
 		/**
@@ -181,31 +194,12 @@
 		}
 		
 		/**
-		 * Pushes an element onto end of the collection.
-		 * @param mixed $value The value to push.
-		 * @return self
-		 */
-		public function queue($value): self
-		{
-			return $this->push($value);
-		}
-		
-		/**
 		 * Pops an element off the end of the collection, returning it.
 		 * @return mixed
 		 */
 		public function pop()
 		{
 			return array_pop($this->values);
-		}
-		
-		/**
-		 * Pops an element off the start of the collection, returning it.
-		 * @return mixed
-		 */
-		public function dequeue()
-		{
-			return array_shift($this->values);
 		}
 		
 		/**
@@ -221,6 +215,25 @@
 		}
 		
 		/**
+		 * Pushes an element onto end of the collection.
+		 * @param mixed $value The value to push.
+		 * @return self
+		 */
+		public function queue($value): self
+		{
+			return $this->push($value);
+		}
+		
+		/**
+		 * Pops an element off the start of the collection, returning it.
+		 * @return mixed
+		 */
+		public function dequeue()
+		{
+			return array_shift($this->values);
+		}
+		
+		/**
 		 * Removes an element from the collection.
 		 * @param mixed $offset The offset within the collection to remove the element.
 		 * @return self
@@ -232,29 +245,29 @@
 		}
 		
 		/**
-		 * Removes all elements that are null.
+		 * Returns a collection containing all elements except NULL values.
 		 * @return self
 		 */
-		public function removeNulls(): self
+		public function withoutNulls(): self
 		{
-			return $this->removeIf(fn($value): bool => $value === null);
+			return $this->without(fn($value): bool => $value === null);
 		}
 		
 		/**
-		 * Removes all elements that are empty.
+		 * Returns a collection containing all elements except "empty" values.
 		 * @return self
 		 */
-		public function removeEmpty(): self
+		public function withoutEmpty(): self
 		{
-			return $this->removeIf(fn($value): bool => empty($value));
+			return $this->without(fn($value): bool => empty($value));
 		}
 		
 		/**
-		 * Removes elements in the collection that match a specific condition.
+		 * Returns a collection containing all elements except those that match a condition.
 		 * @param callable|Closure $predicate A callback that determines if an element should be removed.
 		 * @return self
 		 */
-		public function removeIf($predicate): self
+		public function without($predicate): self
 		{
 			foreach($this->values as $key=>$value)
 				if ($predicate($value))
@@ -263,11 +276,11 @@
 		}
 		
 		/**
-		 * Removes keyed elements from the collection based on a list of keys to remove.
+		 * Unsets the specified keys in the collection.
 		 * @param string[] $keys The list of keys to remove from the collection.
 		 * @return self
 		 */
-		public function removeKeys(array $keys): self
+		public function unsetKeys(array $keys): self
 		{
 			foreach($keys as $key)
 				unset($this->values[$key]);
@@ -300,6 +313,17 @@
 		}
 		
 		/**
+		 * Returns a collection containing the union (PHP array +) of this collection
+		 * and another.
+		 * @param array|SwissCollection|mixed $array
+		 * @return self
+		 */
+		public function union($array): self
+		{
+			return new self($this->values + self::getArrayFromMixed($array));
+		}
+		
+		/**
 		 * Inserts one or more values into the collection.
 		 * @param int $offset The offset from which to insert the values.
 		 * @param mixed|SwissCollection|array $values The values to insert.
@@ -315,11 +339,22 @@
 		 * @param mixed|array|SwissCollection|null $values The value to insert.
 		 * @return self
 		 */
-		public function append($values): self
+		public function appendValues($values): self
 		{
 			$values = self::getArrayFromMixed($values);
 			$this->values = array_merge($this->values, $values);
 			return $this;
+		}
+		
+		/**
+		 * Returns a collection merged with another collection.
+		 * @param mixed|array|SwissCollection|null $values The value to insert.
+		 * @return self
+		 */
+		public function mergedWith($values): self
+		{
+			$values = self::getArrayFromMixed($values);
+			return new self(array_merge($this->values, $values));
 		}
 		
 		/**
@@ -339,7 +374,7 @@
 		 * within the collection flattened into a one-dimensional, keyless collection.
 		 * @return self
 		 */
-		public function flatten(): self
+		public function flattened(): self
 		{
 			return new self(self::flattenArray($this->values));
 		}
@@ -430,9 +465,27 @@
 		 * @param callable|Closure $callback A callback that maps the input to the output values in the collection.
 		 * @return self
 		 */
-		public function maybeMap($callback): self
+		public function mapWithoutNulls($callback): self
 		{
-			return $this->map($callback)->removeNulls();
+			return $this->map($callback)->withoutNulls();
+		}
+		
+		/**
+		 * Returns a new key/value collection mapped through a key/value pair generator.
+		 * @param callable|Closure $keyValueGenerator A callback to generate a new key/value pair for
+		 * each element in the array. The key is passed as the first parameter. The result from the
+		 * generator should be an array of two elements, the first being the key, the second being the value.
+		 * @return self
+		 */
+		public function mapAssoc($keyValueGenerator): self
+		{
+			$result = [];
+			foreach($this->values as $key=>$value)
+			{
+				[$newKey, $newValue] = $keyValueGenerator($key, $value);
+				$result[$newKey] = $newValue;
+			}
+			return new self($result);
 		}
 		
 		/**
@@ -501,7 +554,15 @@
 		 */
 		public function pluck($key = 'ID'): self
 		{
-			return $this->map(fn($item) => is_object($item) ? $item->{$key} : $item[$key]);
+			return $this->map(function($item) use($key)
+			{
+				if (is_object($item))
+					return $item->{$key};
+				else if (is_array($item))
+					return $item[$key];
+				else
+					throw new Exception('Element in collection is not an array or object.');
+			});
 		}
 		
 		/**
@@ -662,7 +723,7 @@
 		 * Returns a new collection containing the elements of the collection converted to strings.
 		 * @return self
 		 */
-		public function strings(): self
+		public function asStrings(): self
 		{
 			return $this->map('strval');
 		}
@@ -671,7 +732,7 @@
 		 * Returns a new collection containing the elements of the collection converted to integers.
 		 * @return self
 		 */
-		public function ints(): self
+		public function asIntegers(): self
 		{
 			return $this->map('intval');
 		}
@@ -680,7 +741,7 @@
 		 * Returns a new collection containing the elements of the collection converted to booleans.
 		 * @return self
 		 */
-		public function bools(): self
+		public function asBooleans(): self
 		{
 			return $this->map('boolval');
 		}
@@ -689,7 +750,7 @@
 		 * Returns a new collection containing the elements of the collection converted to booleans.
 		 * @return self
 		 */
-		public function floats(): self
+		public function asFloats(): self
 		{
 			return $this->map('floatval');
 		}
@@ -936,24 +997,6 @@
 		{
 			return $this->map(
 				fn($value): array => is_object($value) ? get_object_vars($value) : $value);
-		}
-		
-		/**
-		 * Returns a new key/value collection mapped through a key/value pair generator.
-		 * @param callable|Closure $keyValueGenerator A callback to generate a new key/value pair for
-		 * each element in the array. The key is passed as the first parameter. The result from the
-		 * generator should be an array of two elements, the first being the key, the second being the value.
-		 * @return self
-		 */
-		public function mapAssoc($keyValueGenerator): self
-		{
-			$result = [];
-			foreach($this->values as $key=>$value)
-			{
-				[$newKey, $newValue] = $keyValueGenerator($key, $value);
-				$result[$newKey] = $newValue;
-			}
-			return new self($result);
 		}
 		
 		/**

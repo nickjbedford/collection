@@ -26,7 +26,7 @@
 			$a = swiss([ 3, 2, 1 ]);
 			$b = swiss([ 'a' => 'b' ]);
 			
-			$this->assertEquals(2, $a->find(1));
+			$this->assertEquals(2, $a->search(1));
 			$this->assertTrue($a->contains(3));
 			$this->assertFalse($a->contains(4));
 			
@@ -52,7 +52,20 @@
 			$this->assertEquals(10, $a->dequeue());
 			$this->assertEquals(20, $a->first());
 			
-			$a->remove($a->find(30));
+			$a->remove($a->search(30));
 			$this->assertCount(2, $a);
+		}
+		
+		function testArrayRemovesWorks()
+		{
+			$a = sc([ 0, 10, 20, 30, 40, null, 50 ]);
+			
+			$a = $a->withoutNulls();
+			$this->assertCount(6, $a);
+			$this->assertEquals(50, $a->last());
+			
+			$a = $a->withoutEmpty();
+			$this->assertCount(5, $a);
+			$this->assertEquals(10, $a->first());
 		}
 	}
