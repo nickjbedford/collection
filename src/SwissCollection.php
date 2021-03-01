@@ -275,30 +275,6 @@
 		}
 		
 		/**
-		 * Returns a copy of the collection with only the specified key/value pairs.
-		 * @param string[] $keys The list of keys to keep in the copy of the collection.
-		 * @return self
-		 */
-		public function copyWithKeys(array $keys): self
-		{
-			return $this->filter(fn($value, $key): bool => in_array($key, $keys), true);
-		}
-		
-		/**
-		 * Sets or overwrites the key/values pairs in this collection with those
-		 * from another collection.
-		 * @param array|SwissCollection|mixed $array The array containing key/value pairs to set or overwrite.
-		 * @return self
-		 */
-		public function overwrite($array): self
-		{
-			$array = self::getArrayFromMixed($array);
-			foreach($array as $key=>$value)
-				$this->values[$key] = $value;
-			return $this;
-		}
-		
-		/**
 		 * Removes zero or more elements from a specified offset in the collection.
 		 * @param int $offset The offset within the collection to remove the element.
 		 * @param int $length The number of elements to remove.
@@ -307,6 +283,20 @@
 		public function removeRange(int $offset, int $length): self
 		{
 			return $this->splice($offset, $length);
+		}
+		
+		/**
+		 * Sets or overwrites the key/values pairs in this collection with those
+		 * from another collection.
+		 * @param array|SwissCollection|mixed $keyValuePairs The array containing key/value pairs to set or overwrite.
+		 * @return self
+		 */
+		public function overwrite($keyValuePairs): self
+		{
+			$keyValuePairs = self::getArrayFromMixed($keyValuePairs);
+			foreach($keyValuePairs as $key=>$value)
+				$this->values[$key] = $value;
+			return $this;
 		}
 		
 		/**
@@ -406,7 +396,7 @@
 		 * @param bool $preserveKeys Whether to preserve the keys of the original elements.
 		 * @return self
 		 */
-		public function intersectWithKeys($values, bool $preserveKeys = false): self
+		public function intersectAssoc($values, bool $preserveKeys = false): self
 		{
 			$result = array_intersect_assoc($this->values, self::getArrayFromMixed($values));
 			return new self($preserveKeys ? $result : array_values($result));
@@ -446,6 +436,38 @@
 		}
 		
 		/**
+		 * Returns a copy of the collection with only the specified key/value pairs.
+		 * @param string[] $keys The list of keys to keep in the copy of the collection.
+		 * @return self
+		 */
+		public function filterToKeys(array $keys): self
+		{
+			return $this->filter(fn($value, $key): bool => in_array($key, $keys), true);
+		}
+		
+		/**
+		 * Returns a new collection, filtered using a predicate.
+		 * @param callable|Closure $predicate A callback that determines if an element should be included in the result.
+		 * @param bool $includeKeys Whether to include the keys in the predicate as the second argument.
+		 * @return self
+		 */
+		public function filter($predicate, bool $includeKeys = false): self
+		{
+			return new self(array_filter($this->values, $predicate, $includeKeys ? ARRAY_FILTER_USE_BOTH : 0));
+		}
+		
+		/**
+		 * Returns a new collection, filtered using a predicate. This is an alias of filter().
+		 * @param callable|Closure $predicate A callback that determines if an element should be included in the result.
+		 * @param bool $includeKeys Whether to include the keys in the predicate as the second argument.
+		 * @return self
+		 */
+		public function where($predicate, bool $includeKeys = false): self
+		{
+			return $this->filter($predicate, $includeKeys);
+		}
+		
+		/**
 		 * Returns a new collection containing only the unique elements in the collection.
 		 * @return self
 		 */
@@ -480,28 +502,6 @@
 		public function pluck($key = 'ID'): self
 		{
 			return $this->map(fn($item) => is_object($item) ? $item->{$key} : $item[$key]);
-		}
-		
-		/**
-		 * Returns a new collection, filtered using a predicate.
-		 * @param callable|Closure $predicate A callback that determines if an element should be included in the result.
-		 * @param bool $includeKeys Whether to include the keys in the predicate as the second argument.
-		 * @return self
-		 */
-		public function filter($predicate, bool $includeKeys = false): self
-		{
-			return new self(array_filter($this->values, $predicate, $includeKeys ? ARRAY_FILTER_USE_BOTH : 0));
-		}
-		
-		/**
-		 * Returns a new collection, filtered using a predicate. This is an alias of filter().
-		 * @param callable|Closure $predicate A callback that determines if an element should be included in the result.
-		 * @param bool $includeKeys Whether to include the keys in the predicate as the second argument.
-		 * @return self
-		 */
-		public function where($predicate, bool $includeKeys = false): self
-		{
-			return $this->filter($predicate, $includeKeys);
 		}
 		
 		/**
@@ -577,7 +577,7 @@
 		 * @param callable|Closure $predicate The callback to determine if an element matches a condition.
 		 * @return bool
 		 */
-		public function all($predicate): bool
+		public function allMatch($predicate): bool
 		{
 			return $this->fold(fn($any, $value): bool => $any && boolval($predicate($value)), true);
 		}
@@ -587,7 +587,7 @@
 		 * @param callable|Closure $predicate The callback to determine if an element matches a condition.
 		 * @return bool
 		 */
-		public function any($predicate): bool
+		public function anyMatch($predicate): bool
 		{
 			return $this->fold(fn($any, $value): bool => $any || boolval($predicate($value)), false);
 		}
@@ -597,9 +597,9 @@
 		 * @param callable|Closure $predicate The callback to determine if an element matches a condition.
 		 * @return bool
 		 */
-		public function none($predicate): bool
+		public function noneMatch($predicate): bool
 		{
-			return !$this->any($predicate);
+			return !$this->anyMatch($predicate);
 		}
 		
 		/**
@@ -614,7 +614,8 @@
 		}
 		
 		/**
-		 * Reduces the collection to a single output.
+		 * Reduces the collection to a single output. This is different to fold in that the first value
+		 * in the collection becomes the initial value for the accumulator.
 		 * @param callable|Closure $accumulator A callback that maps the input to the output values in the collection.
 		 * @param mixed|null $default The default value to return when the collection is empty.
 		 * @return mixed

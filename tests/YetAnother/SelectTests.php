@@ -9,7 +9,7 @@
 	
 	class SelectTests extends TestCase
 	{
-		public function testSelectOnValidMixedCollectionWorks()
+		function testSelectOnValidMixedCollectionWorks()
 		{
 			$collection = $this->getSelectTestCollection();
 			
@@ -33,7 +33,7 @@
 				});
 		}
 		
-		public function testSelectOnInvalidMixedCollectionThrows()
+		function testSelectOnInvalidMixedCollectionThrows()
 		{
 			$this->expectException(Exception::class);
 			

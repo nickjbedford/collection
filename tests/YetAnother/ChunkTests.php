@@ -7,7 +7,7 @@
 	
 	class ChunkTests extends TestCase
 	{
-		public function testBasicUnkeyedChunkingWorks()
+		function testBasicUnkeyedChunkingWorks()
 		{
 			$chunked = sc(range(1, 50))->chunk(10);
 			
@@ -15,7 +15,7 @@
 			$chunked->each(fn(array $chunk) => $this->assertCount(10, $chunk));
 		}
 		
-		public function testBasicUnkeyedOddCountChunkingWorks()
+		function testBasicUnkeyedOddCountChunkingWorks()
 		{
 			$chunked = sc(range(1, 25))->chunk(10);
 			
@@ -25,7 +25,7 @@
 			$this->assertCount(5, $chunked[2]);
 		}
 		
-		public function testBasicOddCountKeyedChunkingWorks()
+		function testBasicOddCountKeyedChunkingWorks()
 		{
 			$chunked = sc(range(1, 9))->chunk(3);
 			
@@ -39,7 +39,7 @@
 			});
 		}
 		
-		public function testPredicateChunkingWorks()
+		function testPredicateChunkingWorks()
 		{
 			$chunked = sc(range(1, 10))->chunkIf(fn(int $k, int $i) => $i == 8 || $k == 9);
 			
